@@ -4,13 +4,12 @@
 # See here for details: https://circleci.com/developer/orbs/licensing
 version: 2.1
 
-orbs: 
-  github-version: qlikmats/github-version@0.0.14
+
 
 description: >
   Sets github version info in a text file.
 display:
-  source_url: https://github.com/qlik-oss/ci-tools/orb/github-version
+  source_url: https://github.com/lumide/orb-test
 
 commands:
   set-version:
