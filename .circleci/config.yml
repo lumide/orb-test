@@ -1,97 +1,18 @@
 version: 2.1
 
-orbs:
-  gh-pages: lumide/gh-pages@<< pipeline.parameters.dev-orb-version >>
-  orb-tools: circleci/orb-tools@10.1.0
-  bats: circleci/bats@1.0.0
-  shellcheck: circleci/shellcheck@2.2.4
-
-parameters:
-  run-integration-tests:
-    description: An internal flag to prevent integration test from running before a development version has been created.
-    type: boolean
-    default: false
-  dev-orb-version:
-    description: >
-      The development version of the orb to test.
-      This value is automatically adjusted by the "trigger-integration-tests-workflow" job to correspond with the specific version created by the commit and should not be edited.
-      A "dev:alpha" version must exist for the initial pipeline run.
-    type: string
-    default: "dev:alpha"
-
 jobs:
-  lint-scripts:
+  build:
     docker:
-      - image: cimg/base:stable-20.04
+      - image: cimg/base:2021.04
     steps:
       - checkout
       - run:
-          name: Install shfmt
+          name: The First Step
           command: |
-            curl -SsL "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64" -o ./shfmt
-            chmod +x ./shfmt
-          environment:
-            SHFMT_VERSION: v3.5.1
+            echo 'Hello World!'
+            echo 'This is the delivery pipeline'
       - run:
-          name: Lint Shell script
-          command: ./shfmt -d -i 4 src/scripts/
-  integration-test:
-    executor:
-      name: gh-pages/default
-      tag: stable-20.04
-    steps:
-      - checkout
-      - run:
-          name: Build Assets
+          name: The Second Step
           command: |
-            mkdir -p dist
-            echo "yo - build: ${CIRCLE_BUILD_NUM}" > dist/yo.txt
-      - gh-pages/deploy:
-          setup-git: true
-          git-user: CircleCI
-          git-email: s+circleci@yahoo.co.uk
-          ssh-fingerprints: 37:81:ba:77:46:39:3c:d1:c9:7a:a9:29:3c:30:bf:71
-
-workflows:
-  test-pack:
-    unless: << pipeline.parameters.run-integration-tests >>
-    jobs:
-      - orb-tools/lint
-      - orb-tools/pack
-      - lint-scripts
-      - shellcheck/check:
-          dir: ./src/scripts
-          exclude: SC2148
-      - bats/run:
-          path: ./src/tests
-      - orb-tools/publish-dev:
-          orb-name: lumide/gh-pages
-          context: orb-publishing
-          requires:
-            - orb-tools/lint
-            - orb-tools/pack
-            - bats/run
-            - lint-scripts
-            - shellcheck/check
-      - orb-tools/trigger-integration-tests-workflow:
-          name: trigger-integration-dev
-          context: orb-publishing
-          requires:
-            - orb-tools/publish-dev
-
-  integration-test_deploy:
-    when: << pipeline.parameters.run-integration-tests >>
-    jobs:
-      - integration-test
-      - orb-tools/dev-promote-prod-from-commit-subject:
-          orb-name: lumide/gh-pages
-          context: orb-publishing
-          add-pr-comment: false
-          fail-if-semver-not-indicated: true
-          publish-version-tag: false
-          requires:
-            - integration-test
-          filters:
-            branches:
-              only:
-                - main
+            ls -al
+            echo '^^^The files in your repo^^^'
