@@ -16,3 +16,4 @@ jobs:
           command: |
             ls -al
             echo '^^^The files in your repo^^^'
+            cat src/commands/read-github-file.yml
