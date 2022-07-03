@@ -1,267 +1,97 @@
-# This code is licensed from CircleCI to the user under the MIT license.
-# See here for details: https://circleci.com/developer/orbs/licensing
 version: 2.1
-description: |
-    Deploy to GitHub Pages
-display:
-    home_url: https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages
-    source_url: https://github.com/lumide/orb-test
-    orb-tools: circleci/orb-tools@10.1
-commands:
-    deploy:
-        description: |
-            Deploy assets to GitHub Pages
-        parameters:
-            branch:
-                default: gh-pages
-                description: Source branch
-                type: string
-            build-dir:
-                default: dist
-                description: Target directory
-                type: string
-            commit-message:
-                default: ""
-                description: Commit message. default "Built artifacts of ${commit_hash} [ci skip]"
-                type: string
-            git-email:
-                default: ""
-                description: |
-                    Git email. Default is "${CIRCLE_USERNAME}@users.noreply.github.com"
-                type: string
-            git-host:
-                default: github.com
-                description: Git remote host utl. default github.com
-                type: string
-            git-user:
-                default: ""
-                description: |
-                    Git username. Default is "${CIRCLE_USERNAME}"
-                type: string
-            reponame-variable:
-                default: CIRCLE_PROJECT_REPONAME
-                description: Project reponame variable. default CIRCLE_PROJECT_REPONAME
-                type: string
-            setup-git:
-                default: true
-                description: Setting Git username and email
-                type: boolean
-            ssh-fingerprints:
-                default: ""
-                description: |
-                    Fingerprints for SSH deploy key (add the public key as a read/write key on GitHub; add the private key in CircleCI via SSH Permissions, with github.com as Hostname). Used to push a git tag back to the project's repository.
-                type: string
-            tmp-dir:
-                default: .deploy
-                description: A directory created temporarily for deployment
-                type: string
-            username-variable:
-                default: CIRCLE_PROJECT_USERNAME
-                description: Project username variable. default CIRCLE_PROJECT_USERNAME
-                type: string
-        steps:
-            - when:
-                condition: << parameters.setup-git >>
-                steps:
-                    - orb-tools/configure-git:
-                        user-email: << parameters.git-email >>
-                        user-name: << parameters.git-user >>
-            - when:
-                condition: << parameters.ssh-fingerprints >>
-                steps:
-                    - add_ssh_keys:
-                        fingerprints:
-                            - << parameters.ssh-fingerprints >>
-            - run:
-                command: |
-                    Setup() {
-                        U=$(eval echo "$USERNAME")
-                        R=$(eval echo "$REPONAME")
-                        GIT_URL="git@${GIT_HOST}:${U}/${R}.git"
-                        if [[ -d ./.git ]]; then
-                            MESSAGE="Built artifacts of $(git rev-parse --short HEAD) [ci skip]"
-                        else
-                            MESSAGE="Built artifacts of latest commit [ci skip]"
-                        fi
-                    }
 
-                    SetCommitMessage() {
-                        if [ -n "${COMMIT_MESSAGE}" ]; then
-                            MESSAGE="${COMMIT_MESSAGE}"
-                        fi
-                    }
+orbs:
+  gh-pages: lumide/gh-pages@<< pipeline.parameters.dev-orb-version >>
+  orb-tools: circleci/orb-tools@10.1.0
+  bats: circleci/bats@1.0.0
+  shellcheck: circleci/shellcheck@2.2.4
 
-                    Clone() {
-                        rm -rf "${TMP_DIR}"
-                        git clone --depth=1 "${GIT_URL}" -b "${BRANCH}" "${TMP_DIR}" || (git init "${TMP_DIR}" && cd "${TMP_DIR}" && git remote add origin "${GIT_URL}" && git checkout -b "${BRANCH}" && cd - || return)
-                    }
+parameters:
+  run-integration-tests:
+    description: An internal flag to prevent integration test from running before a development version has been created.
+    type: boolean
+    default: false
+  dev-orb-version:
+    description: >
+      The development version of the orb to test.
+      This value is automatically adjusted by the "trigger-integration-tests-workflow" job to correspond with the specific version created by the commit and should not be edited.
+      A "dev:alpha" version must exist for the initial pipeline run.
+    type: string
+    default: "dev:alpha"
 
-                    UpdateAssets() {
-                        # shellcheck disable=SC2115
-                        rm -rf "${TMP_DIR}"/*
-                        cp -R "${TMP_DIR}"/../"${DIST_DIR}"/. "${TMP_DIR}"
-                    }
-
-                    Push() {
-                        cd "${TMP_DIR}" || return
-                        git add --all
-                        git commit -m "${MESSAGE}" || true
-                        git push origin "${BRANCH}"
-                    }
-
-                    Main() {
-                        Setup
-                        SetCommitMessage
-                        Clone
-                        UpdateAssets
-                        Push
-                    }
-
-                    ORB_TEST_ENV="bats-core"
-                    if [ "${0#*$ORB_TEST_ENV}" == "$0" ]; then
-                        Main
-                    fi
-                environment:
-                    BRANCH: << parameters.branch >>
-                    COMMIT_MESSAGE: << parameters.commit-message >>
-                    DIST_DIR: << parameters.build-dir >>
-                    GIT_HOST: << parameters.git-host >>
-                    REPONAME: $<< parameters.reponame-variable >>
-                    TMP_DIR: << parameters.tmp-dir >>
-                    USERNAME: $<< parameters.username-variable >>
-                name: Deploy to GitHub Pages
-executors:
-    default:
-        description: |
-            Default executor, with Docker cimg/base
-        docker:
-            - image: cimg/base:<< parameters.tag >>
-        parameters:
-            tag:
-                default: stable
-                description: |
-                    Pick a specific circleci/node image variant: https://hub.docker.com/r/cimg/base/tags
-                type: string
 jobs:
-    deploy:
-        description: |
-            Deploy assets to GitHub Pages
-        executor: << parameters.executor >>
-        parameters:
-            attach-workspace:
-                default: false
-                description: |
-                    Boolean for whether or not to attach to an existing workspace. Default is false.
-                type: boolean
-            branch:
-                default: gh-pages
-                description: Source branch
-                type: string
-            build-dir:
-                default: dist
-                description: Target directory
-                type: string
-            commit-message:
-                default: ""
-                description: Commit message. default "Built artifacts of ${commit_hash} [ci skip]"
-                type: string
-            executor:
-                default: default
-                description: Executor
-                type: executor
-            git-email:
-                default: ""
-                description: |
-                    Git email. Default is "${CIRCLE_USERNAME}@users.noreply.github.com"
-                type: string
-            git-user:
-                default: ""
-                description: Git username. Default is "${CIRCLE_USERNAME}"
-                type: string
-            persist-to-workspace:
-                default: false
-                description: |
-                    Boolean for whether or not to persist to a workspace. Default is false
-                type: boolean
-            reponame-variable:
-                default: CIRCLE_PROJECT_REPONAME
-                description: Project reponame variable. default CIRCLE_PROJECT_REPONAME
-                type: string
-            ssh-fingerprints:
-                description: |
-                    Fingerprints for SSH deploy key (add the public key as a read/write key on GitHub; add the private key in CircleCI via SSH Permissions, with github.com as Hostname). Used to push a git tag back to the project's repository.
-                type: string
-            tmp-dir:
-                default: .deploy
-                description: A directory created temporarily for deployment
-                type: string
-            username-variable:
-                default: CIRCLE_PROJECT_USERNAME
-                description: Project username variable. default CIRCLE_PROJECT_USERNAME
-                type: string
-            workspace-root:
-                default: ~/repo
-                description: |
-                    Workspace root path that is either an absolute path or a path relative to the working directory. Defaults to '~/repo'
-                type: string
-        steps:
-            - when:
-                condition: << parameters.attach-workspace >>
-                steps:
-                    - attach_workspace:
-                        at: << parameters.workspace-root >>
-            - deploy:
-                branch: << parameters.branch >>
-                build-dir: << parameters.build-dir >>
-                commit-message: << parameters.commit-message >>
-                git-email: << parameters.git-email >>
-                git-user: << parameters.git-user >>
-                reponame-variable: << parameters.reponame-variable >>
-                setup-git: true
-                ssh-fingerprints: << parameters.ssh-fingerprints >>
-                tmp-dir: << parameters.tmp-dir >>
-                username-variable: << parameters.username-variable >>
-            - when:
-                condition: << parameters.persist-to-workspace >>
-                steps:
-                    - persist_to_workspace:
-                        paths:
-                            - .
-                        root: << parameters.workspace-root >>
-examples:
-    deploy-using-command:
-        description: |
-            Example for deploy using command
-        usage:
-            version: "2.1"
-            orbs:
-                gh-pages: sugarshin/gh-pages@x.y.z
-            jobs:
-                build_deploy:
-                    executor: gh-pages/default
-                    steps:
-                        - checkout
-                        - run: ./build.sh
-                        - gh-pages/deploy:
-                            setup-git: true
-                            ssh-fingerprints: <fingerprint>
-            workflows:
-                Build and Deploy:
-                    jobs:
-                        - build_deploy
-    deploy-using-job:
-        description: |
-            Example for deploy using job
-        usage:
-            version: "2.1"
-            orbs:
-                gh-pages: sugarshin/gh-pages@x.y.z
-            workflows:
-                Build and Deploy:
-                    jobs:
-                        - build
-                        - gh-pages/deploy:
-                            requires:
-                                - build
-                            ssh-fingerprints: <fingerprint>
+  lint-scripts:
+    docker:
+      - image: cimg/base:stable-20.04
+    steps:
+      - checkout
+      - run:
+          name: Install shfmt
+          command: |
+            curl -SsL "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64" -o ./shfmt
+            chmod +x ./shfmt
+          environment:
+            SHFMT_VERSION: v3.5.1
+      - run:
+          name: Lint Shell script
+          command: ./shfmt -d -i 4 src/scripts/
+  integration-test:
+    executor:
+      name: gh-pages/default
+      tag: stable-20.04
+    steps:
+      - checkout
+      - run:
+          name: Build Assets
+          command: |
+            mkdir -p dist
+            echo "yo - build: ${CIRCLE_BUILD_NUM}" > dist/yo.txt
+      - gh-pages/deploy:
+          setup-git: true
+          git-user: CircleCI
+          git-email: s+circleci@yahoo.co.uk
+          ssh-fingerprints: 37:81:ba:77:46:39:3c:d1:c9:7a:a9:29:3c:30:bf:71
 
+workflows:
+  test-pack:
+    unless: << pipeline.parameters.run-integration-tests >>
+    jobs:
+      - orb-tools/lint
+      - orb-tools/pack
+      - lint-scripts
+      - shellcheck/check:
+          dir: ./src/scripts
+          exclude: SC2148
+      - bats/run:
+          path: ./src/tests
+      - orb-tools/publish-dev:
+          orb-name: lumide/gh-pages
+          context: orb-publishing
+          requires:
+            - orb-tools/lint
+            - orb-tools/pack
+            - bats/run
+            - lint-scripts
+            - shellcheck/check
+      - orb-tools/trigger-integration-tests-workflow:
+          name: trigger-integration-dev
+          context: orb-publishing
+          requires:
+            - orb-tools/publish-dev
+
+  integration-test_deploy:
+    when: << pipeline.parameters.run-integration-tests >>
+    jobs:
+      - integration-test
+      - orb-tools/dev-promote-prod-from-commit-subject:
+          orb-name: lumide/gh-pages
+          context: orb-publishing
+          add-pr-comment: false
+          fail-if-semver-not-indicated: true
+          publish-version-tag: false
+          requires:
+            - integration-test
+          filters:
+            branches:
+              only:
+                - main
