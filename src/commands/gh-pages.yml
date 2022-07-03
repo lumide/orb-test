@@ -5,7 +5,8 @@ description: |
     Deploy to GitHub Pages
 display:
     home_url: https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages
-    source_url: https://github.com/lumide/orb-test
+    source_url: https://github.com/sugarshin/gh-pages-orb
+orbs:
     orb-tools: circleci/orb-tools@10.1
 commands:
     deploy:
