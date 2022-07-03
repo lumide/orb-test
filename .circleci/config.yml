@@ -2,7 +2,7 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 orbs: 
-  github-read: lumide/github-read@0.0.1
+  github-read: lumide/github-read@0.0.3
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
@@ -20,21 +20,17 @@ jobs:
           name: "Say hello"
           command: "echo Hello, World!"
 jobs:
-  read-github-file:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+  bumpversion:
     docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+      - image: 'cimg/python:3.8-node'
     steps:
-      - checkout
-      - lumide/set-version
+      - version/bump-using-bumpversion:
+          segment: patch
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   say-hello-workflow:
     jobs:
-      - read-github-file
+      - bumpversion
       - say-hello
