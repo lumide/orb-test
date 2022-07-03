@@ -19,13 +19,13 @@ jobs:
       - run:
           name: "Say hello"
           command: "echo Hello, World!"
-jobs:
-  bumpversion:
-    docker:
-      - image: 'cimg/python:3.8-node'
-    steps:
-      - version/bump-using-bumpversion:
-          segment: patch
+          
+    bumpversion:
+      docker:
+        - image: 'cimg/python:3.8-node'
+      steps:
+        - version/bump-using-bumpversion:
+            segment: patch
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
