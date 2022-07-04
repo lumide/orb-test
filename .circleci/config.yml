@@ -16,6 +16,9 @@ jobs:
           command: |
             ls -al
             echo '^^^The files in your repo^^^'
-            VERST="cat src/commands/read-github-file.yml"
-            echo "------"
-            echo $VERST
+            VERST() {
+                cat src/commands/read-github-file.yml
+            }   
+            echo '------'
+            VERST
+            echo $CIRCLE_BRANCH
