@@ -20,5 +20,7 @@ jobs:
                 cat src/commands/read-github-file.yml
             }   
             echo '------'
-            VERST
+            VERST > test.txt
+            echo '<br>'
             echo $CIRCLE_REPOSITORY_URL
+            echo '<br>'
